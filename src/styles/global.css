@@ -452,6 +452,15 @@ button {
   overflow: hidden;
 }
 
+.toolbar-root button,
+.toolbar-root input,
+.toolbar-root select,
+.toolbar-root textarea,
+.toolbar-root .dropdown,
+.toolbar-root .dropdown-menu {
+  pointer-events: auto;
+}
+
 .titlebar-region {
   height: env(titlebar-area-height, 0px);
   width: 100%;

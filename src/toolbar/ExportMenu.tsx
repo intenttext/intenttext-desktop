@@ -29,7 +29,7 @@ function toMarkdown(content: string): string {
         case "sub":
           lines.push(`\n### ${c}`);
           break;
-        case "note":
+        case "text":
           lines.push(`\n${c}`);
           break;
         case "task":
@@ -41,14 +41,13 @@ function toMarkdown(content: string): string {
         case "quote":
           lines.push(`\n> ${c}`);
           break;
-        case "warning":
-          lines.push(`\n> ⚠️ ${c}`);
-          break;
-        case "tip":
-          lines.push(`\n> 💡 ${c}`);
-          break;
         case "info":
-          lines.push(`\n> ℹ️ ${c}`);
+          {
+            const t = String(b.properties?.type || "").toLowerCase();
+            if (t === "warning") lines.push(`\n> ⚠️ ${c}`);
+            else if (t === "tip") lines.push(`\n> 💡 ${c}`);
+            else lines.push(`\n> ℹ️ ${c}`);
+          }
           break;
         case "link":
           lines.push(`[${c}](${b.properties?.to ?? "#"})`);

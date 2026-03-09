@@ -1,7 +1,7 @@
 {
-  "productName": "IntentText",
+  "productName": "Dotit",
   "version": "1.0.0",
-  "identifier": "io.intenttext.editor",
+  "identifier": "io.dotit.app",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
@@ -11,7 +11,7 @@
   "app": {
     "windows": [
       {
-        "title": "IntentText",
+        "title": "Dotit",
         "width": 1400,
         "height": 900,
         "minWidth": 900,
@@ -27,12 +27,16 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "category": "Productivity",
+    "publisher": "Dotit Labs",
+    "shortDescription": "Dotit is a native desktop editor for .it documents.",
+    "longDescription": "Dotit is a professional desktop app for authoring, validating, searching, and running workflows on .it documents with local-first vault support.",
     "fileAssociations": [
       {
         "ext": [
           "it"
         ],
-        "name": "IntentText Document"
+        "name": "Dotit Document"
       }
     ],
     "icon": [

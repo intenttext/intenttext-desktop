@@ -14,16 +14,27 @@ import { useWorkspace } from "./hooks/useWorkspace";
 import { useFile } from "./hooks/useFile";
 import { useAutoSave } from "./hooks/useAutoSave";
 import { useDocument } from "./hooks/useDocument";
+import { useTrustState } from "./hooks/useTrustState";
+import { SearchShowcasePanel } from "./showcase/SearchShowcasePanel";
+import { TrustShowcasePanel } from "./showcase/TrustShowcasePanel";
+import { WorkflowShowcasePanel } from "./showcase/WorkflowShowcasePanel";
+import { FirstRunGuide } from "./showcase/FirstRunGuide";
+import {
+  DEMO_DOCS,
+  DEFAULT_DEMO_DOC_ID,
+  getDemoDocById,
+  type DemoDoc,
+} from "./showcase/demoVault";
 import type * as monaco from "monaco-editor";
 
-const WELCOME = `// Welcome to IntentText Desktop
+const WELCOME = `// Welcome to Dotit Desktop
 // Open a folder (Cmd+Shift+O) or a file (Cmd+O) to begin.
 
 title: My First Document
-summary: A document written in IntentText
+summary: A document written in Dotit
 
 section: Getting Started
-note: Every line in IntentText starts with a keyword.
+note: Every line in Dotit starts with a keyword.
 note: The preview on the right updates as you type.
 tip: Try changing the theme using the Theme picker above.
 
@@ -35,6 +46,7 @@ link: GitHub | to: https://github.com/intenttext/IntentText
 
 export type LayoutMode = "split" | "editor" | "preview";
 export type EditorThemeMode = "dark" | "light";
+type ShowcaseMode = "search" | "trust" | "workflow";
 export type ModalType =
   | "seal"
   | "verify"
@@ -50,6 +62,7 @@ export default function App() {
     state;
 
   const docState = useDocument(content);
+  const trustState = useTrustState(content, setContent);
   const { openFile, saveFile, newFile } = useFile(
     state,
     actions.openFileByPath,
@@ -65,6 +78,10 @@ export default function App() {
       (localStorage.getItem("it-editor-color") as EditorThemeMode) || "light",
   );
   const [modal, setModal] = useState<ModalType>(null);
+  const [showcaseMode, setShowcaseMode] = useState<ShowcaseMode>("search");
+  const [trustShowcaseDocId, setTrustShowcaseDocId] =
+    useState("service-agreement");
+  const [showFirstRunGuide, setShowFirstRunGuide] = useState(false);
   const [dividerPos, setDividerPos] = useState(50);
   const [sidebarVisible, setSidebarVisible] = useState(
     () => localStorage.getItem("it-sidebar-visible") !== "false",
@@ -87,17 +104,48 @@ export default function App() {
   // Set initial content
   useEffect(() => {
     if (!content && !hasRestore) {
-      setContent(WELCOME);
+      const defaultDoc = getDemoDocById(DEFAULT_DEMO_DOC_ID);
+      setContent(defaultDoc?.source || WELCOME);
+      setFilename(defaultDoc ? `${defaultDoc.id}.it` : "untitled.it");
+      markSaved();
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    const seen = localStorage.getItem("it-desktop-showcase-onboarded") === "1";
+    if (!seen) {
+      setShowFirstRunGuide(true);
+    }
+  }, []);
+
   // Update window title
   useEffect(() => {
-    const parts = ["IntentText"];
+    const parts = ["Dotit"];
     if (filename) parts.push(filename);
     if (state.folderName) parts.push(state.folderName);
     document.title = parts.join(" — ");
   }, [filename, state.folderName]);
+
+  const loadDemoDoc = useCallback(
+    (doc: DemoDoc) => {
+      setContent(doc.source);
+      setFilename(`${doc.id}.it`);
+      markSaved();
+      setShowFirstRunGuide(false);
+      localStorage.setItem("it-desktop-showcase-onboarded", "1");
+    },
+    [setContent, setFilename, markSaved],
+  );
+
+  const loadTrustDocById = useCallback(
+    (docId: string) => {
+      const doc = getDemoDocById(docId);
+      if (!doc) return;
+      setTrustShowcaseDocId(docId);
+      loadDemoDoc(doc);
+    },
+    [loadDemoDoc],
+  );
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -232,6 +280,7 @@ export default function App() {
         onThemeChange={setTheme}
         onNew={() => newFile(WELCOME)}
         onOpen={openFile}
+        onOpenFolder={actions.openFolder}
         onSave={saveFile}
         onModal={setModal}
         content={content}
@@ -245,8 +294,6 @@ export default function App() {
           activeFilePath={state.activeFilePath}
           folderPath={state.folderPath}
           folderName={state.folderName}
-          deadlines={state.deadlines}
-          recentFiles={state.recentFiles}
           isFileUnsaved={isUnsaved}
           onFileOpen={actions.openFileByPath}
           onRefresh={actions.refreshFiles}
@@ -289,6 +336,43 @@ export default function App() {
               />
             </div>
           )}
+
+          {showcaseMode === "search" && (
+            <SearchShowcasePanel
+              mode={showcaseMode}
+              onModeChange={setShowcaseMode}
+              activeTitle={filename}
+              folderPath={state.folderPath}
+              activeFilePath={state.activeFilePath}
+              onFileOpen={actions.openFileByPath}
+              onLoadDemo={loadDemoDoc}
+            />
+          )}
+          {showcaseMode === "trust" && (
+            <TrustShowcasePanel
+              mode={showcaseMode}
+              onModeChange={setShowcaseMode}
+              trust={trustState.trust}
+              demoDocs={DEMO_DOCS}
+              activeDocId={trustShowcaseDocId}
+              onSelectDoc={loadTrustDocById}
+              content={content}
+              onContentChange={setContent}
+              onTrack={trustState.startTracking}
+              onApprove={trustState.addApproval}
+              onSign={trustState.addSignature}
+              onSeal={trustState.seal}
+              onVerify={trustState.verify}
+              onAmend={trustState.addAmendment}
+            />
+          )}
+          {showcaseMode === "workflow" && (
+            <WorkflowShowcasePanel
+              content={content}
+              mode={showcaseMode}
+              onModeChange={setShowcaseMode}
+            />
+          )}
         </div>
       </div>
 
@@ -299,11 +383,13 @@ export default function App() {
         words={docState.words}
         errors={docState.errorCount}
         theme={theme}
+        mainFolderPath={state.folderPath}
         isUnsaved={isUnsaved}
         editorTheme={editorTheme}
         onToggleEditorTheme={() =>
           setEditorTheme((t) => (t === "dark" ? "light" : "dark"))
         }
+        onChangeMainFolder={actions.openFolder}
         onErrorClick={() => {
           if (docState.firstErrorLine && editorRef.current) {
             editorRef.current.revealLineInCenter(docState.firstErrorLine);
@@ -346,6 +432,19 @@ export default function App() {
         />
       )}
       {modal === "help" && <HelpOverlay onClose={() => setModal(null)} />}
+
+      {showFirstRunGuide && (
+        <FirstRunGuide
+          docs={DEMO_DOCS}
+          mainFolderPath={state.folderPath}
+          onChangeMainFolder={actions.openFolder}
+          onPick={loadDemoDoc}
+          onClose={() => {
+            setShowFirstRunGuide(false);
+            localStorage.setItem("it-desktop-showcase-onboarded", "1");
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -17,7 +17,7 @@ export function useFile(
     const { open: openDialog } = await import("@tauri-apps/plugin-dialog");
     const selected = await openDialog({
       multiple: false,
-      filters: [{ name: "IntentText", extensions: ["it"] }],
+      filters: [{ name: "Dotit", extensions: ["it"] }],
     });
     if (!selected) return;
     const path = typeof selected === "string" ? selected : selected;
@@ -39,7 +39,7 @@ export function useFile(
     // Save as — pick location
     const path = await save({
       defaultPath: filename,
-      filters: [{ name: "IntentText", extensions: ["it"] }],
+      filters: [{ name: "Dotit", extensions: ["it"] }],
     });
     if (!path) return;
 

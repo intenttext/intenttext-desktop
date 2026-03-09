@@ -83,6 +83,14 @@ export interface WorkspaceActions {
   rebuildIndex: () => Promise<void>;
 }
 
+interface VaultInfo {
+  path: string;
+  collection_count: number;
+  document_count: number;
+  updated_at: string;
+  is_new: boolean;
+}
+
 function loadRecent(): string[] {
   try {
     const raw = localStorage.getItem("it-desktop-recent");
@@ -204,6 +212,12 @@ export function useWorkspace(): [WorkspaceState, WorkspaceActions] {
     setFolderPath(path);
     setFolderName(info.name);
 
+    try {
+      await invoke<VaultInfo>("register_vault_cmd", { path });
+    } catch (err) {
+      console.error("Failed to register vault:", err);
+    }
+
     // Build index first, then apply to files
     let indexMap = new Map<string, IndexEntry>();
     try {
@@ -230,6 +244,45 @@ export function useWorkspace(): [WorkspaceState, WorkspaceActions] {
     } catch (err) {
       console.error("Failed to start watcher:", err);
     }
+  }, []);
+
+  useEffect(() => {
+    const restoreVault = async () => {
+      try {
+        const info = await invoke<VaultInfo | null>("app_startup");
+        if (!info?.path) return;
+
+        const folderInfo = await invoke<WorkspaceInfo>("open_folder", {
+          path: info.path,
+        });
+
+        setFolderPath(info.path);
+        setFolderName(folderInfo.name);
+
+        try {
+          const idx = await invoke<ItIndex>("build_index_recursive", {
+            root: info.path,
+          });
+          setIndexCache(idx);
+          const indexMap = new Map(idx.files.map((f) => [f.path, f]));
+          setFiles(buildTree(folderInfo.files, indexMap));
+
+          const allDeadlines: DeadlineEntry[] = [];
+          for (const file of idx.files) {
+            allDeadlines.push(...file.deadlines);
+          }
+          setDeadlines(allDeadlines);
+        } catch {
+          setFiles(buildTree(folderInfo.files, new Map()));
+        }
+
+        await invoke("watch_folder", { path: info.path });
+      } catch (err) {
+        console.error("Failed to restore vault:", err);
+      }
+    };
+
+    restoreVault();
   }, []);
 
   const openFileByPath = useCallback(

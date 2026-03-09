@@ -25,14 +25,6 @@ pub struct WorkspaceFile {
     pub modified: u64,
 }
 
-#[derive(Serialize, Clone)]
-pub struct SearchResult {
-    pub file: String,
-    pub relative_path: String,
-    pub line: usize,
-    pub content: String,
-}
-
 #[tauri::command]
 pub async fn open_folder(path: String) -> Result<WorkspaceInfo, String> {
     let root = Path::new(&path);
@@ -120,11 +112,7 @@ pub async fn watch_folder(path: String, window: tauri::Window) -> Result<(), Str
             let paths: Vec<String> = event
                 .paths
                 .iter()
-                .filter(|p| {
-                    p.extension()
-                        .map(|e| e == "it")
-                        .unwrap_or(false)
-                })
+                .filter(|p| p.extension().map(|e| e == "it").unwrap_or(false))
                 .map(|p| p.to_string_lossy().to_string())
                 .collect();
 
@@ -151,13 +139,7 @@ pub async fn watch_folder(path: String, window: tauri::Window) -> Result<(), Str
                 .map(|p| p.to_string_lossy().to_string())
                 .unwrap_or_default();
 
-            let _ = window.emit(
-                event_name,
-                FsEvent {
-                    paths,
-                    folder,
-                },
-            );
+            let _ = window.emit(event_name, FsEvent { paths, folder });
         }
     })
     .map_err(|e| format!("Failed to create watcher: {}", e))?;
@@ -175,62 +157,4 @@ pub async fn unwatch_folder(_path: String) -> Result<(), String> {
     let mut guard = WATCHER.lock().map_err(|e| e.to_string())?;
     *guard = None;
     Ok(())
-}
-
-#[tauri::command]
-pub async fn search_workspace(dir: String, query: String) -> Result<Vec<SearchResult>, String> {
-    if query.is_empty() {
-        return Ok(Vec::new());
-    }
-
-    let root = Path::new(&dir);
-    let query_lower = query.to_lowercase();
-    let mut results = Vec::new();
-
-    for entry in WalkDir::new(&dir)
-        .into_iter()
-        .filter_entry(|e| {
-            let name = e.file_name().to_string_lossy();
-            !name.starts_with('.') && name != "node_modules"
-        })
-        .flatten()
-    {
-        if entry.file_type().is_dir() {
-            continue;
-        }
-
-        let entry_name = entry.file_name().to_string_lossy();
-        if !entry_name.ends_with(".it") {
-            continue;
-        }
-
-        let file_path = entry.path();
-        let content = match std::fs::read_to_string(file_path) {
-            Ok(c) => c,
-            Err(_) => continue,
-        };
-
-        let relative = file_path
-            .strip_prefix(root)
-            .map(|p| p.to_string_lossy().to_string())
-            .unwrap_or_else(|_| entry_name.to_string());
-
-        for (i, line) in content.lines().enumerate() {
-            if line.to_lowercase().contains(&query_lower) {
-                results.push(SearchResult {
-                    file: file_path.to_string_lossy().to_string(),
-                    relative_path: relative.clone(),
-                    line: i + 1,
-                    content: line.trim().to_string(),
-                });
-            }
-        }
-
-        // Limit results to prevent overwhelming the UI
-        if results.len() > 500 {
-            break;
-        }
-    }
-
-    Ok(results)
 }

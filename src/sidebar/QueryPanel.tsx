@@ -3,9 +3,16 @@ import { invoke } from "@tauri-apps/api/core";
 
 interface QueryResult {
   file: string;
-  relative_path: string;
+  file_abs: string;
   line: number;
+  block_type: string;
   content: string;
+}
+
+interface QueryResponse {
+  total_matches: number;
+  files: number;
+  hits: QueryResult[];
 }
 
 interface QueryPanelProps {
@@ -52,10 +59,10 @@ export function QueryPanel({ folderPath, onFileOpen }: QueryPanelProps) {
     try {
       // Build search query from filters
       const parts: string[] = [];
-      if (blockType !== "any") parts.push(blockType + ":");
-      if (byFilter.trim()) parts.push("by: " + byFilter.trim());
-      if (statusFilter !== "any") parts.push("status: " + statusFilter);
-      if (domainFilter !== "any") parts.push("domain: " + domainFilter);
+      if (blockType !== "any") parts.push(`type=${blockType}`);
+      if (byFilter.trim()) parts.push(`by=${byFilter.trim()}`);
+      if (statusFilter !== "any") parts.push(`status=${statusFilter}`);
+      if (domainFilter !== "any") parts.push(`domain=${domainFilter}`);
 
       const query = parts.length > 0 ? parts.join(" ") : "";
       if (!query) {
@@ -64,24 +71,10 @@ export function QueryPanel({ folderPath, onFileOpen }: QueryPanelProps) {
         return;
       }
 
-      // Use search_workspace as backbone — for a real query engine
-      // we'd use @intenttext/core query API
-      const res = await invoke<QueryResult[]>("search_workspace", {
-        dir: folderPath,
+      const res = await invoke<QueryResponse>("search_vault_cmd", {
         query,
       });
-
-      // If searching by type, filter to matching lines that start with that keyword
-      let filtered = res;
-      if (blockType !== "any") {
-        filtered = res.filter(
-          (r) =>
-            r.content.toLowerCase().startsWith(blockType + ":") ||
-            r.content.toLowerCase().includes(blockType + ":"),
-        );
-      }
-
-      setResults(filtered);
+      setResults(res.hits);
     } catch (err) {
       console.error("Query failed:", err);
       setResults([]);
@@ -175,10 +168,14 @@ export function QueryPanel({ folderPath, onFileOpen }: QueryPanelProps) {
           <div
             key={i}
             className="query-result-item"
-            onClick={() => onFileOpen(r.file)}
+            onClick={() => onFileOpen(r.file_abs)}
           >
-            <div className="query-result-file">{r.relative_path}</div>
-            <div className="query-result-content">{r.content}</div>
+            <div className="query-result-file">
+              {r.file} · L{r.line}
+            </div>
+            <div className="query-result-content">
+              [{r.block_type}] {r.content}
+            </div>
           </div>
         ))}
       </div>

@@ -1,6 +1,6 @@
-# IntentText Desktop
+# Dotit Desktop
 
-Native desktop editor for [IntentText](https://github.com/intenttext/IntentText) (`.it`) documents.
+Native desktop editor for `.it` documents, powered by the IntentText core.
 
 Built with [Tauri](https://tauri.app/) v2, React, and Monaco Editor. Opens `.it` files natively on macOS, Windows, and Linux.
 

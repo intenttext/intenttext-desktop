@@ -3,9 +3,24 @@ import { invoke } from "@tauri-apps/api/core";
 
 interface SearchResult {
   file: string;
-  relative_path: string;
+  file_abs: string;
   line: number;
+  block_type: string;
   content: string;
+}
+
+interface SearchResponse {
+  total_matches: number;
+  files: number;
+  hits: SearchResult[];
+}
+
+interface SearchGroupItem {
+  file: string;
+  file_abs: string;
+  block_type: string;
+  content: string;
+  line: number;
 }
 
 interface SearchPanelProps {
@@ -29,11 +44,10 @@ export function SearchPanel({ folderPath, onFileOpen }: SearchPanelProps) {
       }
       setSearching(true);
       try {
-        const res = await invoke<SearchResult[]>("search_workspace", {
-          dir: folderPath,
+        const res = await invoke<SearchResponse>("search_vault_cmd", {
           query: q,
         });
-        setResults(res);
+        setResults(res.hits);
       } catch (err) {
         console.error("Search failed:", err);
         setResults([]);
@@ -54,11 +68,17 @@ export function SearchPanel({ folderPath, onFileOpen }: SearchPanelProps) {
   );
 
   // Group results by file
-  const grouped = new Map<string, SearchResult[]>();
+  const grouped = new Map<string, SearchGroupItem[]>();
   for (const r of results) {
-    const list = grouped.get(r.relative_path) ?? [];
-    list.push(r);
-    grouped.set(r.relative_path, list);
+    const list = grouped.get(r.file) ?? [];
+    list.push({
+      file: r.file,
+      file_abs: r.file_abs,
+      block_type: r.block_type,
+      content: r.content,
+      line: r.line,
+    });
+    grouped.set(r.file, list);
   }
 
   if (!folderPath) {
@@ -96,11 +116,11 @@ export function SearchPanel({ folderPath, onFileOpen }: SearchPanelProps) {
               <div
                 key={i}
                 className="search-result-line"
-                onClick={() => onFileOpen(item.file)}
+                onClick={() => onFileOpen(item.file_abs)}
               >
                 <span className="search-line-num">L{item.line}</span>
                 <span className="search-line-content">
-                  {highlightMatch(item.content, query)}
+                  [{item.block_type}] {highlightMatch(item.content, query)}
                 </span>
               </div>
             ))}

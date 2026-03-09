@@ -14,6 +14,7 @@ interface Props {
   onThemeChange: (theme: string) => void;
   onNew: () => void;
   onOpen: () => void;
+  onOpenFolder: () => void;
   onSave: () => void;
   onModal: (m: ModalType) => void;
   content: string;
@@ -29,6 +30,7 @@ export function Toolbar({
   onThemeChange,
   onNew,
   onOpen,
+  onOpenFolder,
   onSave,
   onModal,
   content,
@@ -83,6 +85,16 @@ export function Toolbar({
           <path d="M1 3.5A1.5 1.5 0 012.5 2h3.879a1.5 1.5 0 011.06.44L8.56 3.56A.5.5 0 008.854 3.5H13.5A1.5 1.5 0 0115 5v7.5a1.5 1.5 0 01-1.5 1.5h-11A1.5 1.5 0 011 12.5v-9zM2.5 3a.5.5 0 00-.5.5V6h12V5a.5.5 0 00-.5-.5H8.854a1.5 1.5 0 01-1.06-.44L6.672 2.94A.5.5 0 006.379 3H2.5z" />
         </svg>
         Open
+      </button>
+      <button
+        className="tbtn"
+        onClick={onOpenFolder}
+        title="Choose main folder (Cmd+Shift+O)"
+      >
+        <svg viewBox="0 0 16 16" fill="currentColor">
+          <path d="M1 3.5A1.5 1.5 0 012.5 2h3.879a1.5 1.5 0 011.06.44L8.56 3.56A.5.5 0 008.854 3.5H13.5A1.5 1.5 0 0115 5v7.5a1.5 1.5 0 01-1.5 1.5h-11A1.5 1.5 0 011 12.5v-9zM2.5 3a.5.5 0 00-.5.5V6h12V5a.5.5 0 00-.5-.5H8.854a1.5 1.5 0 01-1.06-.44L6.672 2.94A.5.5 0 006.379 3H2.5z" />
+        </svg>
+        Main Folder
       </button>
       <button className="tbtn" onClick={onSave} title="Save file (Cmd+S)">
         <svg viewBox="0 0 16 16" fill="currentColor">

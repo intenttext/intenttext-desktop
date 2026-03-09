@@ -7,9 +7,11 @@ interface Props {
   words: number;
   errors: number;
   theme: string;
+  mainFolderPath: string | null;
   isUnsaved: boolean;
   editorTheme: EditorThemeMode;
   onToggleEditorTheme: () => void;
+  onChangeMainFolder: () => void;
   onErrorClick: () => void;
 }
 
@@ -20,11 +22,18 @@ export function StatusBar({
   words,
   errors,
   theme,
+  mainFolderPath,
   isUnsaved,
   editorTheme,
   onToggleEditorTheme,
+  onChangeMainFolder,
   onErrorClick,
 }: Props) {
+  const compactMainFolder =
+    mainFolderPath && mainFolderPath.length > 44
+      ? `...${mainFolderPath.slice(-44)}`
+      : (mainFolderPath ?? "Not set");
+
   return (
     <div
       style={{
@@ -65,8 +74,27 @@ export function StatusBar({
         )}
       </div>
       <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-        <span>v2.12.1</span>
+        <span>v3.1.0</span>
         <span>Theme: {theme}</span>
+        <span title={mainFolderPath ?? "No main folder selected"}>
+          Main Folder: {compactMainFolder}
+        </span>
+        <button
+          onClick={onChangeMainFolder}
+          title="Change main folder"
+          style={{
+            background: "none",
+            border: "1px solid var(--border)",
+            borderRadius: 4,
+            cursor: "pointer",
+            fontSize: 11,
+            padding: "1px 6px",
+            lineHeight: 1.4,
+            color: "var(--text-muted)",
+          }}
+        >
+          Change
+        </button>
         <span>
           {isUnsaved ? (
             <span style={{ color: "var(--warning)" }}>● Unsaved</span>

@@ -46,18 +46,26 @@ export function ConvertModal({ onApply, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
         style={{ maxWidth: 640, width: "90vw" }}
       >
-        <h2>🔄 Convert to IntentText</h2>
+        <h2>🔄 Convert to Dotit (.it)</h2>
 
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
           <button
             className={tab === "markdown" ? "btn-primary" : "btn-secondary"}
-            onClick={() => { setTab("markdown"); setOutput(""); setError(""); }}
+            onClick={() => {
+              setTab("markdown");
+              setOutput("");
+              setError("");
+            }}
           >
             Markdown
           </button>
           <button
             className={tab === "html" ? "btn-primary" : "btn-secondary"}
-            onClick={() => { setTab("html"); setOutput(""); setError(""); }}
+            onClick={() => {
+              setTab("html");
+              setOutput("");
+              setError("");
+            }}
           >
             HTML
           </button>
@@ -95,7 +103,9 @@ export function ConvertModal({ onApply, onClose }: Props) {
         </button>
 
         {error && (
-          <p style={{ color: "var(--error)", fontSize: 13, marginTop: 8 }}>{error}</p>
+          <p style={{ color: "var(--error)", fontSize: 13, marginTop: 8 }}>
+            {error}
+          </p>
         )}
 
         {output && (

@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Toolbar } from "./toolbar/Toolbar";
 import { StatusBar } from "./status/StatusBar";
 import { MonacoEditor } from "./editor/MonacoEditor";
+import { VisualEditor } from "./visual/VisualEditor";
 import { Preview } from "./preview/Preview";
 import { Sidebar } from "./sidebar/Sidebar";
 import { SealModal } from "./modals/SealModal";
@@ -26,6 +27,7 @@ import {
   type DemoDoc,
 } from "./showcase/demoVault";
 import type * as monaco from "monaco-editor";
+import type { EditorMode } from "./visual/types";
 
 const WELCOME = `// Welcome to Dotit Desktop
 // Open a folder (Cmd+Shift+O) or a file (Cmd+O) to begin.
@@ -78,6 +80,9 @@ export default function App() {
       (localStorage.getItem("it-editor-color") as EditorThemeMode) || "light",
   );
   const [modal, setModal] = useState<ModalType>(null);
+  const [editorMode, setEditorMode] = useState<EditorMode>(
+    () => (localStorage.getItem("it-editor-mode") as EditorMode) || "visual",
+  );
   const [showcaseMode, setShowcaseMode] = useState<ShowcaseMode>("search");
   const [trustShowcaseDocId, setTrustShowcaseDocId] =
     useState("service-agreement");
@@ -100,6 +105,9 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("it-sidebar-visible", String(sidebarVisible));
   }, [sidebarVisible]);
+  useEffect(() => {
+    localStorage.setItem("it-editor-mode", editorMode);
+  }, [editorMode]);
 
   // Set initial content
   useEffect(() => {
@@ -274,6 +282,8 @@ export default function App() {
       <Toolbar
         filename={filename}
         onFilenameChange={setFilename}
+        editorMode={editorMode}
+        onEditorModeChange={setEditorMode}
         layout={layout}
         onLayoutChange={setLayout}
         theme={theme}
@@ -307,12 +317,20 @@ export default function App() {
                 layout === "split" ? { flex: `0 0 ${dividerPos}%` } : undefined
               }
             >
-              <MonacoEditor
-                value={content}
-                onChange={setContent}
-                editorRef={editorRef}
-                editorTheme={editorTheme}
-              />
+              {editorMode === "source" ? (
+                <MonacoEditor
+                  value={content}
+                  onChange={setContent}
+                  editorRef={editorRef}
+                  editorTheme={editorTheme}
+                />
+              ) : (
+                <VisualEditor
+                  value={content}
+                  onChange={setContent}
+                  theme={theme}
+                />
+              )}
             </div>
           )}
 

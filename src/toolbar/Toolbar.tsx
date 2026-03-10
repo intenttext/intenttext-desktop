@@ -4,10 +4,14 @@ import { ExportMenu } from "./ExportMenu";
 import { TrustMenu } from "./TrustMenu";
 import { ToolsMenu } from "./ToolsMenu";
 import type { LayoutMode, ModalType } from "../App";
+import type { EditorMode } from "../visual/types";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 interface Props {
   filename: string;
   onFilenameChange: (name: string) => void;
+  editorMode: EditorMode;
+  onEditorModeChange: (mode: EditorMode) => void;
   layout: LayoutMode;
   onLayoutChange: (mode: LayoutMode) => void;
   theme: string;
@@ -24,6 +28,8 @@ interface Props {
 export function Toolbar({
   filename,
   onFilenameChange,
+  editorMode,
+  onEditorModeChange,
   layout,
   onLayoutChange,
   theme,
@@ -37,6 +43,7 @@ export function Toolbar({
   onContentChange,
 }: Props) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const toolbarRef = useRef<HTMLDivElement>(null);
 
   // Close menus on outside click
@@ -53,14 +60,56 @@ export function Toolbar({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+    const syncFullscreen = async () => {
+      try {
+        const fs = await getCurrentWindow().isFullscreen();
+        if (mounted) setIsFullscreen(fs);
+      } catch {
+        if (mounted) setIsFullscreen(Boolean(document.fullscreenElement));
+      }
+    };
+    syncFullscreen();
+    window.addEventListener("focus", syncFullscreen);
+    document.addEventListener("fullscreenchange", syncFullscreen);
+    return () => {
+      mounted = false;
+      window.removeEventListener("focus", syncFullscreen);
+      document.removeEventListener("fullscreenchange", syncFullscreen);
+    };
+  }, []);
+
   const toggle = (name: string) =>
     setOpenMenu((cur) => (cur === name ? null : name));
+
+  const toggleFullscreen = async () => {
+    try {
+      const win = getCurrentWindow();
+      const fs = await win.isFullscreen();
+      await win.setFullscreen(!fs);
+      setIsFullscreen(!fs);
+      return;
+    } catch {
+      // Browser fallback for non-tauri runtime
+    }
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      } else {
+        await document.documentElement.requestFullscreen();
+        setIsFullscreen(true);
+      }
+    } catch {
+      // no-op when fullscreen is blocked by the runtime
+    }
+  };
 
   return (
     <div
       ref={toolbarRef}
       className="toolbar-root"
-      data-tauri-drag-region
       style={{
         height: "var(--toolbar-h)",
         background: "var(--bg-toolbar)",
@@ -109,7 +158,33 @@ export function Toolbar({
         spellCheck={false}
       />
 
+      <div className="toolbar-drag-handle" data-tauri-drag-region />
+
       <div style={{ flex: 1 }} />
+
+      <div className="mode-switch">
+        <div
+          className="mode-switch-indicator"
+          style={{
+            transform:
+              editorMode === "source" ? "translateX(100%)" : "translateX(0)",
+          }}
+        />
+        <button
+          className={`mode-switch-btn ${editorMode === "visual" ? "active" : ""}`}
+          onClick={() => onEditorModeChange("visual")}
+          title="Visual mode"
+        >
+          Visual
+        </button>
+        <button
+          className={`mode-switch-btn ${editorMode === "source" ? "active" : ""}`}
+          onClick={() => onEditorModeChange("source")}
+          title="Source mode"
+        >
+          Source
+        </button>
+      </div>
 
       {/* Center — layout */}
       <div style={{ display: "flex", gap: 2 }}>
@@ -135,6 +210,8 @@ export function Toolbar({
           ◨ Preview
         </button>
       </div>
+
+      <div className="toolbar-drag-handle" data-tauri-drag-region />
 
       <div style={{ flex: 1 }} />
 
@@ -197,6 +274,13 @@ export function Toolbar({
 
       <button className="tbtn" onClick={() => onModal("help")} title="Help (?)">
         ?
+      </button>
+      <button
+        className="tbtn"
+        onClick={toggleFullscreen}
+        title="Toggle fullscreen"
+      >
+        {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
       </button>
     </div>
   );

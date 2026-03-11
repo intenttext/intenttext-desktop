@@ -1723,10 +1723,12 @@ version = "2.14.2"
 dependencies = [
  "chrono",
  "dirs 5.0.1",
+ "hex",
  "once_cell",
  "regex",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror 1.0.69",
  "uuid",
 ]
